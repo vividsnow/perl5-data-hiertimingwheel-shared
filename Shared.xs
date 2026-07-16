@@ -9,7 +9,8 @@
     if (!sv_isobject(sv) || !sv_derived_from(sv, "Data::HierTimingWheel::Shared")) \
         croak("Expected a Data::HierTimingWheel::Shared object"); \
     HwHandle *h = INT2PTR(HwHandle*, SvIV(SvRV(sv))); \
-    if (!h) croak("Attempted to use a destroyed Data::HierTimingWheel::Shared object")
+    if (!h) croak("Attempted to use a destroyed Data::HierTimingWheel::Shared object"); \
+    sv_2mortal(SvREFCNT_inc(SvRV(sv)))
 
 #define MAKE_OBJ(class, handle) \
     SV *obj = newSViv(PTR2IV(handle)); \
