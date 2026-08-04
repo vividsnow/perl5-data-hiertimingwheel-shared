@@ -54,7 +54,7 @@ new(class, path = &PL_sv_undef, num_slots = 256, num_levels = 4, capacity = 0, .
      * (default 0600, owner-only). Pass e.g. 0660 for cross-user sharing. */
     mode_t mode = (items > 5 && (SvGETMAGIC(ST(5)), SvOK(ST(5)))) ? (mode_t)SvUV(ST(5)) : 0600;
     HwHandle *h = hw_create(p, (uint64_t)num_slots, (uint64_t)num_levels, (uint64_t)capacity, mode, errbuf);
-    if (!h) croak("Data::HierTimingWheel::Shared->new: %s", errbuf);
+    if (!h) croak("Data::HierTimingWheel::Shared->new: %s", errbuf[0] ? errbuf : "out of memory");
     MAKE_OBJ(class, h);
   OUTPUT:
     RETVAL
@@ -73,7 +73,7 @@ new_memfd(class, name = &PL_sv_undef, num_slots = 256, num_levels = 4, capacity 
     if (capacity < 1)
         croak("Data::HierTimingWheel::Shared->new_memfd: capacity must be >= 1");
     HwHandle *h = hw_create_memfd(nm, (uint64_t)num_slots, (uint64_t)num_levels, (uint64_t)capacity, errbuf);
-    if (!h) croak("Data::HierTimingWheel::Shared->new_memfd: %s", errbuf);
+    if (!h) croak("Data::HierTimingWheel::Shared->new_memfd: %s", errbuf[0] ? errbuf : "out of memory");
     MAKE_OBJ(class, h);
   OUTPUT:
     RETVAL
@@ -86,7 +86,7 @@ new_from_fd(class, fd)
     char errbuf[HW_ERR_BUFLEN];
   CODE:
     HwHandle *h = hw_open_fd(fd, errbuf);
-    if (!h) croak("Data::HierTimingWheel::Shared->new_from_fd: %s", errbuf);
+    if (!h) croak("Data::HierTimingWheel::Shared->new_from_fd: %s", errbuf[0] ? errbuf : "out of memory");
     MAKE_OBJ(class, h);
   OUTPUT:
     RETVAL
