@@ -579,9 +579,10 @@ static inline void hw_init_header(void *base, uint32_t num_slots, uint32_t num_l
     hdr->total_size       = total;
     hdr->reader_slots_off = L.reader_slots;
     /* Publish magic LAST, as a release store: it is the commit point, so a
-       creator killed before this store leaves magic==0 -- which the
-       crashed-creator recovery treats as an abandoned mid-init file and
-       recovers, instead of a magic-set-but-incomplete header that would brick. */
+       creator killed before it leaves magic==0 and the file is never mistaken
+       for a valid one.  Recovery re-initializes such a file only while it is
+       still all-zero (a kill during the ftruncate or the zeroing above); a kill
+       during the few field stores leaves a file to remove by hand. */
     __atomic_store_n(&hdr->magic, HW_MAGIC, __ATOMIC_RELEASE);
     __atomic_thread_fence(__ATOMIC_SEQ_CST);
 }
@@ -741,6 +742,11 @@ static HwHandle *hw_create(const char *path, uint64_t num_slots, uint64_t num_le
                     hw_init_header(base, (uint32_t)num_slots, (uint32_t)num_levels, (uint32_t)capacity, total);
                     flock(fd, LOCK_UN); close(fd);
                     return hw_setup(base, map_size, path, -1);
+                }
+                if (((HwHeader *)base)->magic == 0 && (uint64_t)st.st_size == total
+                    && st.st_uid == geteuid()) {
+                    HW_ERR("%s: incomplete hierarchical timing-wheel file left by an interrupted create; remove it and retry", path);
+                    munmap(base, map_size); flock(fd, LOCK_UN); close(fd); return NULL;
                 }
                 HW_ERR("invalid hierarchical timing-wheel file"); munmap(base, map_size); flock(fd, LOCK_UN); close(fd); return NULL;
             }
